@@ -15,7 +15,7 @@ services:
     environment:
       - DD_APM_ENABLED=true
       - DD_APM_NON_LOCAL_TRAFFIC=true
-      - DD_LOG_LEVEL=DEBUG
+      - DD_LOG_LEVEL=TRACE
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_AC_EXCLUDE=name:collector
       - DD_OTLP_GRPC_PORT=4317

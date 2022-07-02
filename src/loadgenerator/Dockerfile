@@ -18,6 +18,10 @@ WORKDIR /usr/src/app/
 
 COPY ./src/loadgenerator/ ./
 
+RUN apt-get update -y && apt-get upgrade -y
+
+RUN apt-get install gcc python3-dev -y
+
 RUN pip install --prefix="/usr/local/" -r ./requirements.txt
 
 ENTRYPOINT locust --host="http://${FRONTEND_ADDR}" --headless -u "${USERS}"
