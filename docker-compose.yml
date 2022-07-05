@@ -25,7 +25,11 @@ services:
     image: redis:alpine
     ports:
       - "${REDIS_PORT}"
-
+    labels:
+      com.datadoghq.ad.check_names: '["redisdb"]'
+      com.datadoghq.ad.init_configs: '[{}]'
+      com.datadoghq.ad.instances: '[{"host": "%%host%%","port":"6379"}]'
+      com.datadoghq.ad.logs: '[{"source":"redis","service":"cartservice"}]'
   # AdService
   adservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-adservice
