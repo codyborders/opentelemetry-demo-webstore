@@ -5,7 +5,7 @@ services:
   # Datadog Agent
   dd-agent:
     container_name: dd-agent
-    image: datadog/agent:7.35.0
+    image: datadog/agent:7.37.0
     env_file:
       - ~/sandbox.docker.env
     volumes:
@@ -18,7 +18,7 @@ services:
       - DD_LOG_LEVEL=TRACE
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_AC_EXCLUDE=name:collector
-      - DD_OTLP_GRPC_PORT=4317
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0.0.0.0:4317
 
   # Redis
   redis-cart:
