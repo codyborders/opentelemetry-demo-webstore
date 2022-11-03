@@ -20,6 +20,7 @@ COPY ./src/recommendationservice/ ./
 COPY ./pb/ ./proto/
 
 RUN pip install --upgrade pip
+RUN pip install protobuf==3.19.0
 RUN pip install -r ./requirements.txt
 
 # add files into working directory
