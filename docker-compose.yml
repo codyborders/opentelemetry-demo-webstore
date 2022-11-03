@@ -187,16 +187,16 @@ services:
       dockerfile: ./src/recommendationservice/Dockerfile
     ports:
       - "${RECOMMENDATION_SERVICE_PORT}"
-    depends_on:
-      - productcatalogservice
-      - dd-agent
     environment:
       - RECOMMENDATION_SERVICE_PORT
       - PRODUCT_CATALOG_SERVICE_ADDR
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=recommendationservice
-
+    depends_on:
+      - productcatalogservice
+      - dd-agent
   # ShippingService
   shippingservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-shippingservice
