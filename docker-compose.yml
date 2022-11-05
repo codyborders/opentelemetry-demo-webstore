@@ -25,6 +25,24 @@ networks:
     driver: bridge
 
 services:
+  
+  # Datadog Agent
+  dd-agent:
+    container_name: dd-agent
+    image: datadog/agent:7.37.0
+    env_file:
+      - ~/sandbox.docker.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    environment:
+      - DD_APM_ENABLED=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_LOG_LEVEL=TRACE
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_AC_EXCLUDE=name:collector
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0.0.0.0:4317
   # Ad service
   adservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-adservice
@@ -43,12 +61,12 @@ services:
       - "${AD_SERVICE_PORT}"
     environment:
       - AD_SERVICE_PORT
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=adservice
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Cart service
@@ -70,12 +88,12 @@ services:
     environment:
       - CART_SERVICE_PORT
       - REDIS_ADDR
-      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=cartservice
       - ASPNETCORE_URLS=http://*:${CART_SERVICE_PORT}
     depends_on:
       - redis-cart
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Checkout service
@@ -102,7 +120,7 @@ services:
       - PAYMENT_SERVICE_ADDR
       - PRODUCT_CATALOG_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=checkoutservice
@@ -113,7 +131,7 @@ services:
       - paymentservice
       - productcatalogservice
       - shippingservice
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Currency service
@@ -136,10 +154,10 @@ services:
       - "${CURRENCY_SERVICE_PORT}"
     environment:
       - CURRENCY_SERVICE_PORT
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice   # The C++ SDK does not support OTEL_SERVICE_NAME
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Email service
@@ -160,10 +178,10 @@ services:
     environment:
       - APP_ENV=production
       - EMAIL_SERVICE_PORT
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otelcol:4318/v1/traces
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=emailservice
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Frontend
@@ -192,7 +210,7 @@ services:
       - PRODUCT_CATALOG_SERVICE_ADDR
       - RECOMMENDATION_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_RESOURCE_ATTRIBUTES=service.name=frontend
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - ENV_PLATFORM
@@ -203,7 +221,7 @@ services:
       - cartservice
       - checkoutservice
       - currencyservice
-      - otelcol
+      - dd-agent
       - productcatalogservice
       - quoteservice
       - recommendationservice
@@ -220,7 +238,7 @@ services:
       - "${ENVOY_PORT}:${ENVOY_PORT}"
       - 10000:10000
     environment:
-      - PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - FRONTEND_PORT
       - FRONTEND_HOST
       - FEATURE_FLAG_SERVICE_PORT
@@ -238,6 +256,7 @@ services:
       - featureflagservice
       - loadgenerator
       - grafana
+      - dd-agent
 
   loadgenerator:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-loadgenerator
@@ -260,11 +279,11 @@ services:
       - LOCUST_HOST
       - LOCUST_HEADLESS
       - LOCUST_AUTOSTART
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=loadgenerator
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
-      - frontend
+      - dd-agent
     logging: *logging
 
   # Payment service
@@ -285,10 +304,10 @@ services:
       - "${PAYMENT_SERVICE_PORT}"
     environment:
       - PAYMENT_SERVICE_PORT
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=paymentservice
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Product Catalog service
@@ -310,10 +329,10 @@ services:
     environment:
       - PRODUCT_CATALOG_SERVICE_PORT
       - FEATURE_FLAG_GRPC_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=productcatalogservice
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Quote service
@@ -336,13 +355,13 @@ services:
       # OTEL_EXPORTER_OTLP_TRACES_ENDPOINT # Not working for PHP
       - QUOTE_SERVICE_PORT
       - OTEL_SERVICE_NAME=quoteservice
-      - OTEL_EXPORTER_OTLP_ENDPOINT=otelcol:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=dd-agent:4317
       - OTEL_TRACES_SAMPLER=parentbased_always_on
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
       - OTEL_PHP_TRACES_PROCESSOR=simple
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Recommendation service
@@ -369,12 +388,13 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
       - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=recommendationservice
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
       - productcatalogservice
-      - otelcol
+      - dd-agent
       - featureflagservice
     logging: *logging
 
@@ -397,10 +417,10 @@ services:
     environment:
       - SHIPPING_SERVICE_PORT
       - QUOTE_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_SERVICE_NAME=shippingservice
     depends_on:
-      - otelcol
+      - dd-agent
     logging: *logging
 
   # Feature Flag service
@@ -422,7 +442,7 @@ services:
     environment:
       - FEATURE_FLAG_SERVICE_PORT
       - FEATURE_FLAG_GRPC_SERVICE_PORT
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://dd-agent:4317
       - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=featureflagservice
       - DATABASE_URL=ecto://ffs:ffs@ffs_postgres:5432/ffs
@@ -482,26 +502,26 @@ services:
     logging: *logging
 
   # OpenTelemetry Collector
-  otelcol:
-    image: otel/opentelemetry-collector-contrib:0.61.0
-    container_name: otel-col
-    deploy:
-      resources:
-        limits:
-          memory: 100M
-    restart: always
-    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
-    volumes:
-      - ./src/otelcollector/otelcol-config.yml:/etc/otelcol-config.yml
-      - ./src/otelcollector/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
-    ports:
-      - "4317"          # OTLP over gRPC receiver
-      - "4318:4318"     # OTLP over HTTP receiver
-      - "9464"          # Prometheus exporter
-      - "8888"          # metrics endpoint
-    depends_on:
-      - jaeger
-    logging: *logging
+#  otelcol:
+#    image: otel/opentelemetry-collector-contrib:0.61.0
+#    container_name: otel-col
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 100M
+#    restart: always
+#    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
+#    volumes:
+#      - ./src/otelcollector/otelcol-config.yml:/etc/otelcol-config.yml
+#      - ./src/otelcollector/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
+#    ports:
+#      - "4317"          # OTLP over gRPC receiver
+#      - "4318:4318"     # OTLP over HTTP receiver
+#      - "9464"          # Prometheus exporter
+#      - "8888"          # metrics endpoint
+#    depends_on:
+#      - jaeger
+#    logging: *logging
 
   # Prometheus
   prometheus:
