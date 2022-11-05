@@ -283,6 +283,7 @@ services:
       - OTEL_SERVICE_NAME=loadgenerator
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
+      - frontend
       - dd-agent
     logging: *logging
 
