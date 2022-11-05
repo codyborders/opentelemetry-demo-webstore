@@ -501,7 +501,7 @@ services:
       - "${GRAFANA_SERVICE_PORT}"
     logging: *logging
 
-  # OpenTelemetry Collector
+# OpenTelemetry Collector
 #  otelcol:
 #    image: otel/opentelemetry-collector-contrib:0.61.0
 #    container_name: otel-col
